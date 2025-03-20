@@ -1,21 +1,31 @@
-import socket  # Import socket library
+import socket
+import threading
 
-# Create a TCP/IP socket
+server_ip = '127.0.0.1'
+server_port = 12345
+
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Define server details
-server_ip = '127.0.0.1'  # Server IP (localhost for testing)
-server_port = 12345       # Same port as server
-
-# Connect to the server
 client_socket.connect((server_ip, server_port))
 
-# Send message to the server
-client_socket.send("Hello, Server!".encode())
+# Function to receive messages
+def receive_messages():
+    while True:
+        try:
+            message = client_socket.recv(1024).decode()
+            if not message:
+                break
+            # Only print received messages, not user input
+            print(message)
+        except:
+            break
 
-# Receive response from the server
-response = client_socket.recv(1024).decode()
-print(f"Server: {response}")
+# Start receiving messages in a separate thread
+threading.Thread(target=receive_messages, daemon=True).start()
 
-# Close the socket
+while True:
+    message = input()  # Removed "You: " to prevent formatting issues
+    if message.lower() == "exit":
+        break
+    client_socket.send(message.encode())
+
 client_socket.close()

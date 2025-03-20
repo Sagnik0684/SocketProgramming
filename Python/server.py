@@ -1,30 +1,47 @@
-import socket  # Import socket library
+import socket
+import threading
 
-# Create a TCP/IP socket
+server_ip = '127.0.0.1'
+server_port = 12345
+
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-# Define server details
-server_ip = '127.0.0.1'  # Localhost
-server_port = 12345       # Port number
-
-# Bind the socket to the address and port
 server_socket.bind((server_ip, server_port))
+server_socket.listen(5)
 
-# Start listening for connections (max 1 client in queue)
-server_socket.listen(1)
 print(f"Server listening on {server_ip}:{server_port}...")
 
-# Accept a client connection
-client_socket, client_address = server_socket.accept()
-print(f"Connection established with {client_address}")
+clients = {}  # Stores {client_socket: client_id}
+client_counter = 1  # Assigns unique serial numbers
 
-# Receive data from the client
-message = client_socket.recv(1024).decode()
-print(f"Client: {message}")
+def handle_client(client_socket, client_address):
+    global client_counter
+    client_id = client_counter
+    clients[client_socket] = client_id
+    client_counter += 1
+    
+    print(f"New Client #{client_id} connected from {client_address}")
 
-# Send response to the client
-client_socket.send("Hello, Client! Connection Successful.".encode())
+    while True:
+        try:
+            message = client_socket.recv(1024).decode()
+            if not message:
+                break
+            print(f"Client #{client_id}: {message}")
 
-# Close connections
-client_socket.close()
-server_socket.close()
+            # Send confirmation to the sender
+            client_socket.send(f"Message received by server (Client #{client_id})".encode())
+
+            # Broadcast message to all clients except sender
+            for client in clients:
+                if client != client_socket:
+                    client.send(f"Client #{client_id}: {message}".encode())
+        except:
+            break
+
+    print(f"Client #{client_id} disconnected.")
+    del clients[client_socket]
+    client_socket.close()
+
+while True:
+    client_socket, client_address = server_socket.accept()
+    threading.Thread(target=handle_client, args=(client_socket, client_address)).start()
