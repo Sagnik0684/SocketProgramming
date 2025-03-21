@@ -23,7 +23,7 @@ def receive_messages():
 threading.Thread(target=receive_messages, daemon=True).start()
 
 while True:
-    message = input()  # Removed "You: " to prevent formatting issues
+    message = input()  
     if message.lower() == "exit":
         break
     client_socket.send(message.encode())
